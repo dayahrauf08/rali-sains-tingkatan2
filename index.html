@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rali Sains Tingkatan 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .team-red { @apply bg-red-500 hover:bg-red-600 text-white; }
+        .team-blue { @apply bg-blue-500 hover:bg-blue-600 text-white; }
+        .team-green { @apply bg-green-500 hover:bg-green-600 text-white; }
+        .team-yellow { @apply bg-yellow-400 hover:bg-yellow-500 text-black; }
+        /* Markdown styles for AI response */
+        .ai-content strong { color: #34d399; font-weight: 700; }
+        .ai-content em { color: #60a5fa; font-style: italic; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <!-- Main App Container -->
+    <div id="app" class="max-w-md mx-auto min-h-screen p-4 flex flex-col">
+
+        <!-- Header / Global Leaderboard (Always visible if in game) -->
+        <header id="global-header" class="hidden mb-6">
+            <h1 class="text-center text-xl font-bold text-slate-300 mb-2">Bilik: <span id="room-display" class="text-white"></span></h1>
+            <!-- Mini Leaderboard -->
+            <div class="grid grid-cols-4 gap-2 text-center text-sm font-bold">
+                <div class="bg-red-500/20 p-2 rounded-lg border border-red-500/50">
+                    <div class="text-red-400">MERAH</div>
+                    <div id="score-red" class="text-xl text-white">0</div>
+                </div>
+                <div class="bg-blue-500/20 p-2 rounded-lg border border-blue-500/50">
+                    <div class="text-blue-400">BIRU</div>
+                    <div id="score-blue" class="text-xl text-white">0</div>
+                </div>
+                <div class="bg-green-500/20 p-2 rounded-lg border border-green-500/50">
+                    <div class="text-green-400">HIJAU</div>
+                    <div id="score-green" class="text-xl text-white">0</div>
+                </div>
+                <div class="bg-yellow-500/20 p-2 rounded-lg border border-yellow-500/50">
+                    <div class="text-yellow-400">KUNING</div>
+                    <div id="score-yellow" class="text-xl text-white">0</div>
+                </div>
+            </div>
+            <div id="time-remaining" class="text-center text-xs text-slate-400 mt-2 hidden">
+                Masa tinggal: <span id="timer-display">Mengira...</span>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading-view" class="flex-1 flex items-center justify-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-400"></div>
+        </div>
+
+        <!-- Lobby View (Enter Name & Room) -->
+        <div id="lobby-view" class="hidden flex-1 flex flex-col justify-center space-y-6">
+            <div class="text-center space-y-2">
+                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                    Rali Sains
+                </h1>
+                <p class="text-slate-400">Edisi Tingkatan 2 (KSSM) + AI</p>
+            </div>
+
+            <div class="bg-slate-800 p-6 rounded-2xl shadow-xl space-y-4 border border-slate-700">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Nama Anda</label>
+                    <input type="text" id="player-name" placeholder="Contoh: Ali" class="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Kod Bilik</label>
+                    <input type="text" id="room-code" placeholder="Contoh: 2TEKUN" class="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition text-white uppercase">
+                    <p class="text-xs text-slate-500 mt-2">Kongsi kod ini dengan 31 rakan sekelas anda.</p>
+                </div>
+                <button id="btn-join-lobby" class="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-lg transition shadow-lg shadow-blue-900/30">
+                    Sertai Rali
+                </button>
+            </div>
+        </div>
+
+        <!-- Team Selection View -->
+        <div id="team-view" class="hidden flex-1 flex flex-col">
+            <h2 class="text-2xl font-bold text-center mb-6">Pilih Pasukan Anda</h2>
+            <div class="grid grid-cols-2 gap-4 flex-1 mb-8">
+                <button data-team="red" class="team-select-btn bg-red-500 hover:bg-red-400 rounded-2xl flex flex-col items-center justify-center p-4 transition transform hover:scale-105">
+                    <span class="text-3xl mb-2">🔴</span>
+                    <span class="font-bold text-xl">MERAH</span>
+                    <span id="count-red" class="text-sm opacity-75">0 Pemain</span>
+                </button>
+                <button data-team="blue" class="team-select-btn bg-blue-500 hover:bg-blue-400 rounded-2xl flex flex-col items-center justify-center p-4 transition transform hover:scale-105">
+                    <span class="text-3xl mb-2">🔵</span>
+                    <span class="font-bold text-xl">BIRU</span>
+                    <span id="count-blue" class="text-sm opacity-75">0 Pemain</span>
+                </button>
+                <button data-team="green" class="team-select-btn bg-green-500 hover:bg-green-400 rounded-2xl flex flex-col items-center justify-center p-4 transition transform hover:scale-105">
+                    <span class="text-3xl mb-2">🟢</span>
+                    <span class="font-bold text-xl">HIJAU</span>
+                    <span id="count-green" class="text-sm opacity-75">0 Pemain</span>
+                </button>
+                <button data-team="yellow" class="team-select-btn bg-yellow-500 hover:bg-yellow-400 text-slate-900 rounded-2xl flex flex-col items-center justify-center p-4 transition transform hover:scale-105">
+                    <span class="text-3xl mb-2">🟡</span>
+                    <span class="font-bold text-xl">KUNING</span>
+                    <span id="count-yellow" class="text-sm opacity-75">0 Pemain</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Quiz View -->
+        <div id="game-view" class="hidden flex-1 flex flex-col pb-20"> <!-- Added padding bottom for scrolling past AI box -->
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden mb-6">
+                <div id="progress-bar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
+            </div>
+
+            <div class="flex-1 flex flex-col justify-start"> <!-- Changed center to start for better scrolling -->
+                <!-- Question Card -->
+                <div class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 mb-6 min-h-[150px] flex items-center justify-center text-center relative">
+                     <!-- Next Button (Initially Hidden) -->
+                    <button id="btn-next-q" class="hidden absolute -top-3 -right-3 bg-white text-slate-900 px-4 py-2 rounded-full font-bold shadow-lg hover:bg-blue-100 transition z-10 flex items-center">
+                        Seterusnya →
+                    </button>
+                    <h2 id="question-text" class="text-xl md:text-2xl font-bold leading-relaxed">
+                        Memuatkan Soalan...
+                    </h2>
+                </div>
+
+                <!-- Options Grid -->
+                <div id="options-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Options injected here -->
+                </div>
+
+                <!-- AI Features Area (Initially Hidden) -->
+                <div id="ai-features" class="hidden space-y-4">
+                    <div class="flex space-x-2">
+                        <button id="btn-ai-explain" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 px-4 rounded-xl font-semibold transition flex items-center justify-center">
+                            ✨ Jelaskan Jawapan
+                        </button>
+                        <button id="btn-ai-fact" class="flex-1 bg-fuchsia-600 hover:bg-fuchsia-500 text-white py-3 px-4 rounded-xl font-semibold transition flex items-center justify-center">
+                            ✨ Fakta Menarik
+                        </button>
+                    </div>
+
+                    <!-- AI Response Output Box -->
+                    <div id="ai-output-box" class="hidden bg-slate-800/80 border border-indigo-500/30 p-4 rounded-xl animate-fade-in">
+                        <div id="ai-loading" class="hidden flex items-center text-indigo-300">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Sedang menjana...
+                        </div>
+                        <div id="ai-content" class="ai-content text-slate-200 leading-relaxed"></div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Current Player Stats -->
+             <div class="mt-6 text-center text-slate-400 text-sm flex justify-between px-4 py-4 bg-slate-900/80 fixed bottom-0 left-0 right-0 max-w-md mx-auto backdrop-blur-sm border-t border-slate-800">
+                 <span>Pemain: <b id="player-display" class="text-white"></b></span>
+                 <span>Markah: <b id="personal-score" class="text-emerald-400">0</b></span>
+             </div>
+        </div>
+
+        <!-- Finished View -->
+        <div id="finished-view" class="hidden flex-1 flex flex-col items-center justify-center space-y-6 text-center">
+            <div class="text-6xl">🎉</div>
+            <h2 id="finish-title" class="text-3xl font-bold">Rali Selesai!</h2>
+            <p id="finish-message" class="text-slate-400 text-lg">Anda memperoleh <span id="final-score" class="text-emerald-400 font-bold">0</span> mata untuk pasukan <span id="final-team" class="font-bold uppercase"></span>.</p>
+            <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-sm border border-slate-700">
+                <h3 class="text-xl font-bold mb-4 text-slate-300">Kedudukan Akhir</h3>
+                 <div id="final-leaderboard" class="space-y-3">
+                     <!-- Injected by JS -->
+                 </div>
+            </div>
+            <button onclick="location.reload()" class="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold transition">
+                Main Semula
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuration ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = __app_id;
+
+        // --- App State ---
+        let currentUser = null;
+        let currentRoomId = null;
+        let myTeam = null;
+        let myScore = 0;
+        let currentQuestionIndex = 0;
+        let isSubmitting = false;
+        let roomStartTime = null;
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+        // --- Soalan Sains Tingkatan 2 (KSSM) ---
+        const QUESTIONS = [
+             {
+                q: "Biodiversiti: Manakah antara berikut adalah haiwan vertebrata?",
+                options: ["Cacing tanah", "Ular", "Siput babi", "Labah-labah"],
+                a: 1
+            },
+            {
+                q: "Ekosistem: Apakah nama organisma yang membuat makanannya sendiri menggunakan cahaya matahari?",
+                options: ["Pengguna", "Pengurai", "Pengeluar", "Pemangsa"],
+                a: 2
+            },
+            {
+                q: "Nutrisi: Kelas makanan manakah yang utama untuk pertumbuhan dan pembaikan tisu badan?",
+                options: ["Karbohidrat", "Protein", "Lemak", "Vitamin"],
+                a: 1
+            },
+            {
+                q: "Kesihatan Manusia: Penyakit manakah yang disebabkan oleh virus?",
+                options: ["Denggi", "Kolera", "Tibi (Batuk Kering)", "Kurap"],
+                a: 0
+            },
+            {
+                q: "Air & Larutan: Larutan yang tidak boleh melarutkan sebarang bahan terlarut lagi pada suhu tertentu ialah...",
+                options: ["Larutan cair", "Larutan pekat", "Larutan tepu", "Ampaian"],
+                a: 2
+            },
+            {
+                q: "Asid & Alkali: Apakah perubahan warna kertas litmus biru apabila dicelup ke dalam jus limau berasid?",
+                options: ["Kekal biru", "Bertukar merah", "Bertukar kuning", "Menjadi tidak berwarna"],
+                a: 1
+            },
+            {
+                q: "Daya & Gerakan: Unit S.I. bagi Daya ialah...",
+                options: ["Kilogram (kg)", "Joule (J)", "Watt (W)", "Newton (N)"],
+                a: 3
+            },
+            {
+                q: "Sokongan & Gerakan: Haiwan manakah yang mempunyai rangka hidrostatik?",
+                options: ["Ketam", "Cacing tanah", "Kucing", "Ikan"],
+                a: 1
+            },
+            {
+                q: "Tekanan: Mengapakah pendaki gunung kadang-kadang mengalami pendarahan hidung di altitud tinggi?",
+                options: ["Tekanan atmosfera lebih tinggi", "Tekanan atmosfera lebih rendah", "Suhu terlalu rendah", "Kekurangan oksigen"],
+                a: 1
+            },
+            {
+                q: "Haba: Haba mengalir melalui rod logam pepejal secara...",
+                options: ["Konduksi", "Perolakan", "Sinaran", "Penyejatan"],
+                a: 0
+            },
+            {
+                q: "Bunyi: Bunyi TIDAK BOLEH merambat melalui...",
+                options: ["Air", "Udara", "Pepejal", "Vakum"],
+                a: 3
+            },
+            {
+                q: "Bintang & Galaksi: Matahari dikelaskan sebagai...",
+                options: ["Planet", "Asteroid", "Bintang", "Meteor"],
+                a: 2
+            }
+        ];
+
+        // --- DOM Elements ---
+        const views = {
+            loading: document.getElementById('loading-view'),
+            lobby: document.getElementById('lobby-view'),
+            team: document.getElementById('team-view'),
+            game: document.getElementById('game-view'),
+            finished: document.getElementById('finished-view')
+        };
+        const globalHeader = document.getElementById('global-header');
+        const roomDisplay = document.getElementById('room-display');
+        const scoreEls = {
+            red: document.getElementById('score-red'),
+            blue: document.getElementById('score-blue'),
+            green: document.getElementById('score-green'),
+            yellow: document.getElementById('score-yellow')
+        };
+        const countEls = {
+            red: document.getElementById('count-red'),
+            blue: document.getElementById('count-blue'),
+            green: document.getElementById('count-green'),
+            yellow: document.getElementById('count-yellow')
+        };
+        const aiFeatures = document.getElementById('ai-features');
+        const aiOutputBox = document.getElementById('ai-output-box');
+        const aiContent = document.getElementById('ai-content');
+        const aiLoading = document.getElementById('ai-loading');
+        const btnNextQ = document.getElementById('btn-next-q');
+
+
+        // --- View Switching ---
+        function switchView(viewName) {
+            Object.values(views).forEach(el => el.classList.add('hidden'));
+            views[viewName].classList.remove('hidden');
+        }
+
+        // --- Auth & Init ---
+        async function initAuth() {
+            if (typeof __initial_auth_token !== 'undefined') {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        }
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                switchView('lobby');
+            }
+        });
+
+        // --- Helpers ---
+        function getPlayerDocRef() {
+            return doc(db, `artifacts/${appId}/public/data/rally_players/${currentRoomId}_${currentUser.uid}`);
+        }
+
+        function getRoomDocRef(roomId) {
+             return doc(db, `artifacts/${appId}/public/data/rally_rooms/${roomId}`);
+        }
+
+        // --- 24 Hour Timer Check ---
+        function checkTimeLimit() {
+            if (!roomStartTime) return true; // Not started yet or unknown
+            const now = Date.now();
+            const elapsed = now - roomStartTime.getTime();
+            if (elapsed > TWENTY_FOUR_HOURS_MS) {
+                forceFinishTimeout();
+                return false;
+            }
+            return true;
+        }
+
+        function startCountdownTimer() {
+             const timerEl = document.getElementById('timer-display');
+             document.getElementById('time-remaining').classList.remove('hidden');
+
+             setInterval(() => {
+                 if (!roomStartTime) return;
+                 const now = Date.now();
+                 const remaining = TWENTY_FOUR_HOURS_MS - (now - roomStartTime.getTime());
+
+                 if (remaining <= 0) {
+                     timerEl.textContent = "Tamat";
+                     if (views.game.classList.contains('hidden') === false) {
+                         forceFinishTimeout();
+                     }
+                 } else {
+                     const hours = Math.floor(remaining / (1000 * 60 * 60));
+                     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                     timerEl.textContent = `${hours}j ${minutes}m`;
+                 }
+             }, 60000); // Update every minute
+        }
+
+        function forceFinishTimeout() {
+            myScore = 0; // Penalty or just stop? Let's just stop them.
+            document.getElementById('finish-title').textContent = "Masa Tamat!";
+            document.getElementById('finish-message').textContent = "Had masa 24 jam untuk bilik ini telah berakhir.";
+            document.getElementById('finish-message').className = "text-red-400 text-lg font-bold";
+            switchView('finished');
+        }
+
+
+        // --- Lobby Logic ---
+        document.getElementById('btn-join-lobby').addEventListener('click', async () => {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const roomInput = document.getElementById('room-code').value.trim().toUpperCase();
+
+            if (!nameInput || !roomInput) {
+                alert("Sila masukkan Nama dan Kod Bilik.");
+                return;
+            }
+
+            // --- TIME LIMIT CHECK START ---
+            const roomRef = getRoomDocRef(roomInput);
+            const roomSnap = await getDoc(roomRef);
+            let isNewRoom = false;
+
+            if (!roomSnap.exists()) {
+                // First player creates the room timer
+                isNewRoom = true;
+                await setDoc(roomRef, { startedAt: serverTimestamp() });
+                // We need to wait a tiny bit for server timestamp to be readable back if we want exact local time,
+                // but for now we can just set local roughly.
+                roomStartTime = new Date();
+            } else {
+                const roomData = roomSnap.data();
+                if (roomData.startedAt) {
+                     roomStartTime = roomData.startedAt.toDate();
+                     if (!checkTimeLimit()) {
+                         alert("Maaf, bilik permainan ini telah tamat tempoh (melebihi 24 jam).");
+                         return;
+                     }
+                }
+            }
+            // --- TIME LIMIT CHECK END ---
+
+            currentRoomId = roomInput;
+            roomDisplay.textContent = currentRoomId;
+            document.getElementById('player-display').textContent = nameInput;
+
+            await setDoc(getPlayerDocRef(), {
+                roomId: currentRoomId,
+                uid: currentUser.uid,
+                name: nameInput,
+                score: 0,
+                joinedAt: serverTimestamp()
+            }, { merge: true });
+
+            startRealtimeListeners(currentRoomId);
+            if (roomStartTime) startCountdownTimer();
+
+            switchView('team');
+            globalHeader.classList.remove('hidden');
+        });
+
+        // --- Team Selection ---
+        document.querySelectorAll('.team-select-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!checkTimeLimit()) return;
+
+                myTeam = btn.dataset.team;
+                switchView('game');
+                loadQuestion();
+                await updateDoc(getPlayerDocRef(), { team: myTeam });
+            });
+        });
+
+        // --- Real-time Listeners ---
+        function startRealtimeListeners(roomId) {
+            const playersRef = collection(db, `artifacts/${appId}/public/data/rally_players`);
+            const roomQuery = query(playersRef, where("roomId", "==", roomId));
+
+            onSnapshot(roomQuery, (snapshot) => {
+                const teams = { red: {score:0, count:0}, blue: {score:0, count:0}, green: {score:0, count:0}, yellow: {score:0, count:0} };
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.team && teams[data.team]) {
+                        teams[data.team].score += (data.score || 0);
+                        teams[data.team].count++;
+                    }
+                });
+
+                for (const color in teams) {
+                    scoreEls[color].textContent = teams[color].score;
+                    countEls[color].textContent = `${teams[color].count} Pemain`;
+                }
+
+                updateFinalLeaderboard(teams);
+            });
+        }
+
+        function updateFinalLeaderboard(teams) {
+            const sortedTeams = Object.entries(teams)
+                .sort(([, a], [, b]) => b.score - a.score);
+
+            const teamNamesBM = { red: 'MERAH', blue: 'BIRU', green: 'HIJAU', yellow: 'KUNING' };
+
+            const leaderboardHTML = sortedTeams.map(([color, data], index) => {
+                let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                let colorClass = `text-${color === 'yellow' ? 'yellow-400' : color + '-400'}`;
+
+                return `
+                    <div class="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg">
+                        <span class="font-bold ${colorClass}">${medal} ${teamNamesBM[color]}</span>
+                        <span class="font-mono text-white">${data.score} mata</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('final-leaderboard').innerHTML = leaderboardHTML;
+        }
+
+        // --- Game Logic ---
+        function loadQuestion() {
+            if (!checkTimeLimit()) return;
+
+            if (currentQuestionIndex >= QUESTIONS.length) {
+                finishGame();
+                return;
+            }
+
+            // Reset UI for new question
+            aiFeatures.classList.add('hidden');
+            aiOutputBox.classList.add('hidden');
+            btnNextQ.classList.add('hidden');
+            isSubmitting = false;
+
+            const q = QUESTIONS[currentQuestionIndex];
+            document.getElementById('question-text').textContent = q.q;
+
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 bg-slate-700 hover:bg-blue-600 text-left rounded-xl transition-all duration-200 font-medium border border-slate-600 hover:border-blue-400";
+                btn.textContent = opt;
+                btn.onclick = () => handleAnswer(idx, btn);
+                grid.appendChild(btn);
+            });
+
+            const progress = ((currentQuestionIndex) / QUESTIONS.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+
+        async function handleAnswer(selectedIndex, btnElement) {
+            if (isSubmitting) return;
+            if (!checkTimeLimit()) return; // Double check before accept answer
+            isSubmitting = true;
+
+            const currentQ = QUESTIONS[currentQuestionIndex];
+            const isCorrect = selectedIndex === currentQ.a;
+            const points = isCorrect ? 10 : 0;
+
+            // Disable all buttons
+            const allBtns = document.getElementById('options-grid').children;
+            for(let btn of allBtns) { btn.disabled = true; btn.classList.add('opacity-70'); }
+            btnElement.classList.remove('opacity-70'); // Keep selected one bright
+
+            if (isCorrect) {
+                btnElement.classList.remove('bg-slate-700', 'hover:bg-blue-600');
+                btnElement.classList.add('bg-emerald-500', 'border-emerald-400');
+            } else {
+                btnElement.classList.remove('bg-slate-700', 'hover:bg-blue-600');
+                btnElement.classList.add('bg-red-500', 'border-red-400');
+                 allBtns[currentQ.a].classList.add('bg-emerald-500/50', 'border-emerald-400/50');
+                 allBtns[currentQ.a].classList.remove('opacity-70');
+            }
+
+            myScore += points;
+            document.getElementById('personal-score').textContent = myScore;
+
+            if (points > 0) {
+                 updateDoc(getPlayerDocRef(), { score: increment(points) });
+            }
+
+            // REVEAL AI FEATURES & Next Button immediately after answering
+            aiFeatures.classList.remove('hidden');
+            btnNextQ.classList.remove('hidden');
+        }
+
+        // --- Next Question Handler ---
+        btnNextQ.addEventListener('click', () => {
+             currentQuestionIndex++;
+             loadQuestion();
+             // Scroll back to top if they scrolled down for AI
+             window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+
+        function finishGame() {
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('final-score').textContent = myScore;
+            const teamNamesBM = { red: 'MERAH', blue: 'BIRU', green: 'HIJAU', yellow: 'KUNING' };
+            document.getElementById('final-team').textContent = teamNamesBM[myTeam];
+            document.getElementById('final-team').className = `font-bold uppercase text-${myTeam === 'yellow' ? 'yellow-400' : myTeam + '-500'}`;
+            switchView('finished');
+        }
+
+        // --- GEMINI AI INTEGRATION ---
+        async function callGemini(prompt) {
+            aiOutputBox.classList.remove('hidden');
+            aiLoading.classList.remove('hidden');
+            aiContent.innerHTML = ''; // Clear previous content
+
+            try {
+                const apiKey = ""; // Leave empty, injected by environment
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: prompt }]
+                            }]
+                        })
+                    }
+                );
+
+                const data = await response.json();
+                if (data.candidates && data.candidates.length > 0) {
+                    let text = data.candidates[0].content.parts[0].text;
+                    // Simple markdown to HTML conversion for bold/italics
+                    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    aiContent.innerHTML = text;
+                } else {
+                    aiContent.textContent = "Maaf, AI tidak dapat menjana respons pada masa ini.";
+                }
+            } catch (error) {
+                console.error("AI Error:", error);
+                aiContent.textContent = "Ralat sambungan AI. Sila cuba lagi.";
+            } finally {
+                aiLoading.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('btn-ai-explain').addEventListener('click', () => {
+            const q = QUESTIONS[currentQuestionIndex];
+            const prompt = `Anda adalah guru sains yang membantu pelajar Tingkatan 2. Terangkan dengan ringkas (maksimum 3 ayat) kenapa jawapan untuk soalan ini adalah betul dalam Bahasa Melayu yang mudah difahami.
+            Soalan: "${q.q}"
+            Jawapan Betul: "${q.options[q.a]}"`;
+            callGemini(prompt);
+        });
+
+        document.getElementById('btn-ai-fact').addEventListener('click', () => {
+            const q = QUESTIONS[currentQuestionIndex];
+            const prompt = `Berikan satu fakta sains yang sangat menarik, ringkas dan mengejutkan berkaitan dengan topik utama soalan ini untuk pelajar Tingkatan 2 dalam Bahasa Melayu. Mulakan dengan "Tahukah anda?".
+            Soalan: "${q.q}"`;
+            callGemini(prompt);
+        });
+
+    </script>
+</body>
+</html>
